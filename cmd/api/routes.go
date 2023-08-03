@@ -9,6 +9,13 @@ import (
 func (app *application) routes() *httprouter.Router {
 	router := httprouter.New()
 
+	// by this when the server will encounter these status
+	// codes and will be in a path not handled in the routes
+	// then these functions declared in the format is the
+	// handlerFunc will be used.
+	router.NotFound = http.HandlerFunc(app.notFoundResponse)
+	router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowed)
+
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/movies", app.createMovieHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/movies/:id", app.showMovieHandler)
