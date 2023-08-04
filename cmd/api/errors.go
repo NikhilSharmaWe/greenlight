@@ -14,6 +14,8 @@ func (app *application) errorResponse(w http.ResponseWriter, r *http.Request, st
 		"error": message,
 	}
 
+	fmt.Println(env)
+
 	err := app.writeJSON(w, status, env, nil)
 	if err != nil {
 		app.logError(r, err)
@@ -36,4 +38,8 @@ func (app *application) notFoundResponse(w http.ResponseWriter, r *http.Request)
 func (app *application) methodNotAllowed(w http.ResponseWriter, r *http.Request) {
 	message := fmt.Sprintf("the %s method is not supported for this resource", r.Method)
 	app.errorResponse(w, r, http.StatusMethodNotAllowed, message)
+}
+
+func (app *application) badRequestResponse(w http.ResponseWriter, r *http.Request, err error) {
+	app.errorResponse(w, r, http.StatusBadRequest, err.Error())
 }
