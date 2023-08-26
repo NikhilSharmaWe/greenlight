@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/NikhilSharmaWe/greenlight/internal/data"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
@@ -20,13 +21,17 @@ type config struct {
 	port int
 	env  string
 	db   struct {
-		dsn string
+		dsn          string
+		maxOpenConns int
+		maxIdleConns int
+		maxIdleTime  string
 	}
 }
 
 type application struct {
 	config config
 	logger *log.Logger
+	models data.Models
 }
 
 func main() {
@@ -40,6 +45,10 @@ func main() {
 	flag.IntVar(&cfg.port, "port", 4000, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 	flag.StringVar(&cfg.db.dsn, "db-dsn", os.Getenv("GREENLIGHT_DB_DSN"), "PostgresSQL DSN")
+
+	flag.IntVar(&cfg.db.maxOpenConns, "db-map-open-conns", 25, "PostgresSQL max open connections")
+	flag.IntVar(&cfg.db.maxIdleConns, "db-map-idle-conns", 25, "PostgresSQL max idle connections")
+	flag.StringVar(&cfg.db.maxIdleTime, "db-map-idle-time", "15m", "PostgresSQL max connection idle time")
 
 	flag.Parse()
 
@@ -57,6 +66,7 @@ func main() {
 	app := &application{
 		config: cfg,
 		logger: logger,
+		models: data.NewModels(db),
 	}
 
 	srv := http.Server{
@@ -78,6 +88,16 @@ func openDB(cfg config) (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	db.SetMaxOpenConns(cfg.db.maxOpenConns)
+	db.SetMaxIdleConns(cfg.db.maxIdleConns)
+
+	duration, err := time.ParseDuration(cfg.db.maxIdleTime)
+	if err != nil {
+		return nil, err
+	}
+
+	db.SetConnMaxIdleTime(duration)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
